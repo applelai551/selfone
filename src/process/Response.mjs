@@ -279,7 +279,7 @@ export async function Response($request, $response) {
                                     break;
                                 }
                                 case url.pathname.startsWith("/api/v3/weather/"): {
-                                    Console.info("🟪 WeatherKit.api.v3.weather");
+                                    Console.info("🟪 WeatherKit.api.v3.weather", "selfone-2");
                                     const parameters = parseWeatherKitURL(url);
                                     // 仅解码选中的可注入产品，其余根产品保持原始 arena / Only selected injectable products are decoded; all other roots retain their original arenas.
                                     const dataSets = parameters.dataSets.filter(dataSet => Settings.DataSets.includes(dataSet) && ["airQuality", "currentWeather", "forecastDaily", "forecastHourly", "forecastNextHour", "weatherAlerts"].includes(dataSet));
