@@ -1,4 +1,4 @@
-# 修改 iRingo: 🌤 WeatherKit  在ios27.31十日天气预报不生效的问题
+# 修改 iRingo: 🌤 WeatherKit  在ios27.3十日天气预报不生效的问题
 
 dev 分支支持 WK3 空气质量处理，使用 `@nsringo/weatherkit@1.2.0` 的模型并复用现有空气质量配置、数据源和算法。只有请求与设置都包含 `airQuality` 时才处理；其他 WK3 数据集保持 Apple 原始数据。
 
