@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -194,7 +195,7 @@ test("Argument builder consumers use purpose-specific configs", async () => {
     assert.match(sgmoduleTools, /from "\.\/arguments-builder\.dev\.config"/);
 });
 
-test("Dev builds use dev templates, bundles, and output names", async () => {
+test("Dev builds use dev templates, bundles, and output names", { skip: existsSync(new URL("../.github/workflows/dev.yml", import.meta.url)) ? false : "fork 已移除 .github/workflows" }, async () => {
     const devTemplates = ["surge.dev.handlebars", "loon.dev.handlebars", "quantumultx.dev.handlebars", "stash.dev.handlebars"];
     const [config, packageJson, rollup, devWorkflow, deployWorkflow, sgmoduleTools, ...templates] = await Promise.all([
         readFile(new URL("../arguments-builder.dev.config.ts", import.meta.url), "utf8"),

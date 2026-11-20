@@ -12,7 +12,7 @@ import WeatherKit2 from "../class/WeatherKit2.mjs";
 import WeatherKit3 from "../class/WeatherKit3.mjs";
 import database from "../function/database.mjs";
 import mergeWeatherKitAvailability from "../function/mergeWeatherKitAvailability.mjs";
-import normalizeWK3WeatherVectors from "../function/normalizeWK3WeatherVectors.mjs";
+import normalizeWK3WeatherProduct from "../function/normalizeWK3WeatherProduct.mjs";
 import parseWeatherKitURL from "../function/parseWeatherKitURL.mjs";
 import providerNameToLogo from "../function/providerNameToLogo.mjs";
 import setENV from "../function/setENV.mjs";
@@ -367,7 +367,7 @@ export async function Response($request, $response) {
                                     );
                                     if (Object.keys(patch).length > 0) {
                                         for (const name of ["currentWeather", "forecastDaily", "forecastHourly"]) {
-                                            if (patch[name]) patch[name] = normalizeWK3WeatherVectors(patch[name]);
+                                            if (patch[name]) patch[name] = normalizeWK3WeatherProduct(patch[name]);
                                         }
                                         rawBody = WeatherKit3.encode(ByteBuffer, patch);
                                     }

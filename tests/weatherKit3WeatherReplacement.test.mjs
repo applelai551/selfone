@@ -115,21 +115,25 @@ test("disabled or native-provider weather stays byte-identical", async t => {
     assert.deepEqual((await response()).body, source);
 });
 
-test("scalar provider condition codes are wrapped as WK3 vectors instead of dropping the product", async t => {
-    // 真实注入器（ConvertWeatherCodeField）产出 WK2 风格的标量 conditionCode；WK3 需要枚举向量。
-    // Real injectors emit WK2-style scalar conditionCode; WK3 expects enum vectors.
-    t.mock.method(ColorfulClouds.prototype, "CurrentWeather", async () => ({ metadata, temperature: 28.5, conditionCode: "RAIN" }));
-    t.mock.method(ColorfulClouds.prototype, "Daily", async () => ({ metadata, days: [{ forecastStart: original.forecastDaily.days[0].forecastStart, temperatureMax: 33, conditionCode: "SNOW", daytimeForecast: { cloudCover: 70, conditionCode: "CLOUDY" } }] }));
-    t.mock.method(ColorfulClouds.prototype, "ForecastHourly", async () => ({ metadata, hours: [{ forecastStart: original.forecastHourly.hours[0].forecastStart, temperature: 26, conditionCode: "RAIN" }] }));
+test("provider scalars are normalized to WK3 shapes instead of dropping the product", async t => {
+    // 真实注入器的输出形态：conditionCode 为标量、windDirection 为浮点角度、hourly precipitationAmount 为数值。
+    // Real injectors emit scalar conditionCode, fractional windDirection and numeric hourly precipitationAmount.
+    t.mock.method(ColorfulClouds.prototype, "CurrentWeather", async () => ({ metadata, temperature: 28.5, conditionCode: "RAIN", windDirection: 245.9 }));
+    t.mock.method(ColorfulClouds.prototype, "Daily", async () => ({ metadata, days: [{ forecastStart: original.forecastDaily.days[0].forecastStart, temperatureMax: 33, conditionCode: "SNOW", daytimeForecast: { cloudCover: 70, conditionCode: "CLOUDY", windDirection: 287.16 } }] }));
+    t.mock.method(ColorfulClouds.prototype, "ForecastHourly", async () => ({ metadata, hours: [{ forecastStart: original.forecastHourly.hours[0].forecastStart, temperature: 26, conditionCode: "RAIN", windDirection: 246.5, precipitationAmount: 0 }] }));
 
     const output = (await response()).body;
     const body = WK3.Codec.decode("Weather", WK3.Weather.getRootAsWeather(new ByteBuffer(output)));
 
     assert.equal(body.currentWeather.temperature, 28.5);
     assert.deepEqual(body.currentWeather.conditionCode, ["RAIN"]);
+    assert.equal(body.currentWeather.windDirection, 246);
     assert.equal(body.forecastDaily.days[0].temperatureMax, 33);
     assert.deepEqual(body.forecastDaily.days[0].conditionCode, ["SNOW"]);
     assert.deepEqual(body.forecastDaily.days[0].daytimeForecast.conditionCode, ["CLOUDY"]);
+    assert.equal(body.forecastDaily.days[0].daytimeForecast.windDirection, 287);
     assert.equal(body.forecastHourly.hours[0].temperature, 26);
     assert.deepEqual(body.forecastHourly.hours[0].conditionCode, ["RAIN"]);
+    assert.equal(body.forecastHourly.hours[0].windDirection, 247);
+    assert.deepEqual(body.forecastHourly.hours[0].precipitationAmount, { expected: 0, minimum: 0, maximum: 0 });
 });
