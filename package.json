@@ -1,0 +1,82 @@
+{
+    "name": "@nsringo/weatherkit",
+    "organizationName": " iRingo",
+    "displayName": " iRingo: 🌤 WeatherKit",
+    "description": "iOS 18 & macOS 15 & watchOS 11\n1.解锁全部天气功能\n2.修改空气质量数据\n3.修改下一小时降水数据\n4.修改天气数据\n5.修改天气预警数据",
+    "homepage": "https://NSRingo.github.io/guide/Weather/weather-kit",
+    "openUrl": "http://boxjs.com/#/app/iRingo.WeatherKit",
+    "icon": "https://developer.apple.com/assets/elements/icons/weatherkit/weatherkit-128x128.png",
+    "keywords": [],
+    "contributors": [
+        "VirgilClyne[https://github.com/VirgilClyne]",
+        "WordlessEcho[https://github.com/WordlessEcho]",
+        "001[https://github.com/001ProMax]",
+        "hhh2210[https://github.com/hhh2210]"
+    ],
+    "system": [
+        "iOS",
+        "iPadOS",
+        "macOS",
+        "watchOS"
+    ],
+    "systemVersion": 18,
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/NSRingo/WeatherKit.git"
+    },
+    "directories": {
+        "example": "example"
+    },
+    "type": "module",
+    "workspaces": [
+        "packages/*"
+    ],
+    "scripts": {
+        "dev": "npm-run-all --parallel build:dev build:dev-args",
+        "dev:pages": "npx wrangler pages dev --port 8787",
+        "dev:workers": "npx wrangler dev -c wrangler.workers.jsonc",
+        "dev:vercel": "npx vercel dev --listen 8787",
+        "deploy:pages": "npx wrangler pages deploy",
+        "deploy:workers": "npx wrangler deploy --minify -c wrangler.workers.jsonc",
+        "deploy:vercel": "npx vercel deploy --prod",
+        "build": "rollup -c",
+        "build:dev": "rollup -c rollup.dev.config.mjs",
+        "build:dev-args": "arguments-builder build -c arguments-builder.dev.config.ts",
+        "sgmoudle:dev": "sgmoudle dev",
+        "build:release-args": "arguments-builder build -c arguments-builder.release.config.ts",
+        "build:full-args": "arguments-builder boxjs -c arguments-builder.full.config.ts",
+        "build:args:rewrite": "arguments-builder build --config arguments-builder.rewrite.config.ts",
+        "build:args": "npm-run-all --serial build:release-args build:full-args",
+        "dts": "arguments-builder dts -c arguments-builder.full.config.ts",
+        "update": "npm update --save"
+    },
+    "browserslist": [
+        "iOS >= 18"
+    ],
+    "devDependencies": {
+        "@biomejs/biome": "2.1.4",
+        "@iringo/arguments-builder": "^1.8.5",
+        "@iringo/sgmoudle-tools": "^1.2.2",
+        "@rollup/plugin-alias": "^5.1.1",
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "@rollup/plugin-terser": "^1.0.0",
+        "npm-run-all": "^4.1.5",
+        "rollup": "^4.62.2",
+        "typescript": "^5.9.3"
+    },
+    "dependencies": {
+        "@nsnanocat/flatbuffer-root": "^1.1.0",
+        "@nsnanocat/util": "^2.7.5",
+        "@nsringo/weatherkit": "^2.1.0",
+        "fetch-cookie": "^3.2.0",
+        "flatbuffers": "^24.12.23",
+        "hono": "^4.12.31",
+        "node-fetch": "^3.3.2"
+    },
+    "overrides": {
+        "@iringo/surge2egern": {
+            "puppeteer": "25.7.0"
+        }
+    }
+}
