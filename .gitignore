@@ -87,9 +87,6 @@ web_modules/
 .next
 out
 
-# 私有模块文件：仅本地保存，不随仓库公开
-modules/iRingo.WeatherKit.selfone.lpx
-
 # Nuxt.js build / generate output
 .nuxt
 dist
