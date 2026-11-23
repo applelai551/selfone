@@ -427,7 +427,7 @@ async function InjectCurrentWeather(currentWeather, Settings, enviroments) {
     if (newCurrentWeather?.metadata) {
         newCurrentWeather.metadata = { ...currentWeather?.metadata, ...newCurrentWeather.metadata };
         currentWeather = { ...currentWeather, ...newCurrentWeather };
-        currentWeather.metadata.providerLogo ||= providerNameToLogo(currentWeather.metadata.providerName);
+        currentWeather.metadata.providerLogo = providerNameToLogo(currentWeather.metadata.providerName) ?? currentWeather.metadata.providerLogo;
         //Console.debug(`currentWeather: ${JSON.stringify(currentWeather, null, 2)}`);
     }
     Console.info("✅ InjectCurrentWeather");
@@ -468,7 +468,7 @@ async function InjectForecastDaily(forecastDaily, Settings, enviroments) {
     if (newForecastDaily?.metadata) {
         forecastDaily.metadata = { ...forecastDaily?.metadata, ...newForecastDaily.metadata };
         Weather.mergeForecast(forecastDaily?.days, newForecastDaily?.days);
-        forecastDaily.metadata.providerLogo ||= providerNameToLogo(forecastDaily.metadata.providerName);
+        forecastDaily.metadata.providerLogo = providerNameToLogo(forecastDaily.metadata.providerName) ?? forecastDaily.metadata.providerLogo;
         //Console.debug(`forecastDaily: ${JSON.stringify(forecastDaily, null, 2)}`);
     }
     Console.info("✅ InjectForecastDaily");
@@ -509,7 +509,7 @@ async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
     if (newForecastHourly?.metadata) {
         forecastHourly.metadata = { ...forecastHourly?.metadata, ...newForecastHourly.metadata };
         forecastHourly.hours = Weather.mergeForecast(forecastHourly?.hours, newForecastHourly?.hours);
-        forecastHourly.metadata.providerLogo ||= providerNameToLogo(forecastHourly.metadata.providerName);
+        forecastHourly.metadata.providerLogo = providerNameToLogo(forecastHourly.metadata.providerName) ?? forecastHourly.metadata.providerLogo;
         //Console.debug(`forecastHourly: ${JSON.stringify(forecastHourly, null, 2)}`);
     }
     Console.info("✅ InjectForecastHourly");
@@ -548,7 +548,7 @@ async function InjectForecastNextHour(forecastNextHour, Settings, enviroments) {
     if (newForecastNextHour?.metadata) {
         newForecastNextHour.metadata = { ...forecastNextHour?.metadata, ...newForecastNextHour.metadata };
         forecastNextHour = { ...forecastNextHour, ...newForecastNextHour };
-        forecastNextHour.metadata.providerLogo ||= providerNameToLogo(forecastNextHour.metadata.providerName);
+        forecastNextHour.metadata.providerLogo = providerNameToLogo(forecastNextHour.metadata.providerName) ?? forecastNextHour.metadata.providerLogo;
         Console.debug(`forecastNextHour: ${JSON.stringify(forecastNextHour, null, 2)}`);
     }
     Console.info("✅ InjectForecastNextHour");
