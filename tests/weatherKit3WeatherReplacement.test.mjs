@@ -256,3 +256,23 @@ test("QWeather-only products keep a single QWeather logo", async t => {
     assert.equal(body.forecastDaily.metadata.providerLogo, undefined);
     assert.equal(body.forecastHourly.metadata.providerLogo, undefined);
 });
+
+test("rewritten binary responses drop Apple cache validation headers", async t => {
+    mockWeather(t);
+    // Apple 原响应带 ETag/Cache-Control，改写后必须清掉并强制 no-store，否则客户端会复用旧包或走 304。
+    const headers = {
+        "Content-Type": "application/vnd.apple.flatbuffer;messageType=WK3.Weather",
+        "Cache-Control": "public, max-age=1800",
+        "Content-Length": String(source.length),
+        "Content-MD5": "old-md5",
+        Digest: "sha-256=old",
+        ETag: '"apple-etag"',
+        "Last-Modified": "Mon, 23 Nov 2026 08:00:00 GMT",
+        "X-Keep": "yes",
+    };
+    const output = (await Response(request(), { status: 200, headers, bodyBytes: source })).headers;
+
+    for (const key of ["ETag", "Last-Modified", "Content-Length", "Content-MD5", "Digest"]) assert.equal(output[key], undefined, key);
+    assert.equal(output["Cache-Control"], "no-store");
+    assert.equal(output["X-Keep"], "yes");
+});

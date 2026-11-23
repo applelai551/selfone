@@ -16,6 +16,20 @@ import normalizeWK3WeatherProduct from "../function/normalizeWK3WeatherProduct.m
 import parseWeatherKitURL from "../function/parseWeatherKitURL.mjs";
 import providerNameToLogo from "../function/providerNameToLogo.mjs";
 import setENV from "../function/setENV.mjs";
+
+/**
+ * 改写正文后清理 Apple 原响应的缓存校验头，避免客户端复用旧包或命中 304。
+ * Drop Apple's cache-validation headers after rewriting so clients revalidate against the new body.
+ * @param {any} $response - 响应对象 / Response object.
+ */
+function clearCacheHeaders($response) {
+    if (!$response?.headers) return;
+    for (const key of Object.keys($response.headers)) {
+        if (["content-length", "content-encoding", "etag", "last-modified", "content-md5", "digest", "cache-control"].includes(key.toLowerCase())) delete $response.headers[key];
+    }
+    $response.headers["Cache-Control"] = "no-store";
+}
+
 /***************** Processing *****************/
 export async function Response($request, $response) {
     // 解构URL
@@ -282,6 +296,7 @@ export async function Response($request, $response) {
                                     );
                                     keepSingleLogoPerProvider(body);
                                     rawBody = WeatherKit2.encode(ByteBuffer, body);
+                                    clearCacheHeaders($response);
                                     break;
                                 }
                                 case url.pathname.startsWith("/api/v3/weather/"): {
@@ -379,6 +394,7 @@ export async function Response($request, $response) {
                                             if (patch[name]) patch[name] = normalizeWK3WeatherProduct(patch[name]);
                                         }
                                         rawBody = WeatherKit3.encode(ByteBuffer, patch);
+                                        clearCacheHeaders($response);
                                     }
                                     break;
                                 }
