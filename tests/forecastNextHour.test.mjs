@@ -255,6 +255,40 @@ test("Condition preserves empty output for missing or unsupported non-alternatin
     assert.deepEqual(ForecastNextHour.Condition(makeSummaries("RRC")), []);
 });
 
+test("whole-hour continuous rain gets a window-end boundary reported as STOP", () => {
+    const minutes = Array.from({ length: 60 }, (_, index) => ({
+        precipitationChance: 100,
+        precipitationIntensity: 1,
+        startTime: BASE_TIME + index * 60,
+    }));
+
+    const normalized = ForecastNextHour.Minute(minutes, "未来一小时持续降雨");
+    const summaries = ForecastNextHour.Summary(normalized);
+    const conditions = ForecastNextHour.Condition(summaries);
+
+    assert.equal(summaries.length, 1);
+    assert.equal(summaries[0].endTime, BASE_TIME + 60 * 60);
+    assert.deepEqual(
+        conditions.map(condition => condition.forecastToken),
+        ["STOP"],
+    );
+    assert.deepEqual(conditions[0].parameters, [{ date: BASE_TIME + 60 * 60, type: "FIRST_AT" }]);
+});
+
+test("multi-segment windows keep the open-ended zero endTime on the last summary", () => {
+    const minutes = Array.from({ length: 60 }, (_, index) => ({
+        precipitationChance: 100,
+        precipitationIntensity: index < 30 ? 1 : 0,
+        startTime: BASE_TIME + index * 60,
+    }));
+
+    const summaries = ForecastNextHour.Summary(ForecastNextHour.Minute(minutes, "未来一小时有雨"));
+
+    assert.equal(summaries.length, 2);
+    assert.equal(summaries[0].endTime, BASE_TIME + 30 * 60);
+    assert.equal(summaries[1].endTime, 0);
+});
+
 function makeSummaries(pattern) {
     return [...pattern].map((symbol, index) => ({
         clear: symbol === "C",

@@ -227,7 +227,9 @@ export default class ForecastNextHour {
                     Summary.clear = minute.clear;
                     break;
                 case Length - 1: // 最后一个
-                    Summary.endTime = 0; // ⚠️空值必须写零！
+                    // 验证性改动（方案 A）：整段窗口只有一段持续降水、没有任何变化点时，把 endTime 置为窗口结束，
+                    // 给 iOS 一个窗口内边界以验证逐分钟降水卡是否因此渲染；其余情况仍按原约定写零。
+                    Summary.endTime = Summaries.length === 0 && !minute.clear ? minute.startTime + 60 : 0; // ⚠️无边界时空值必须写零！
                     //Summary.endCondition = minute.condition;
                     Summary.clear = minute.clear;
                     Console.debug(`Summaries[${i}]`, JSON.stringify({ ...minute, ...Summary }, null, 2));
@@ -331,14 +333,26 @@ export default class ForecastNextHour {
                     });
                 }
             } else if (!next) {
-                Conditions.push({
-                    beginCondition: current.maxCondition,
-                    endCondition: current.maxCondition,
-                    forecastToken: "CONSTANT",
-                    parameters: [],
-                    startTime: current.startTime,
-                    endTime: 0,
-                });
+                if (current.endTime > current.startTime) {
+                    // 验证性改动（方案 A）：单段持续降水已带窗口内边界时输出 STOP + FIRST_AT，不再使用 CONSTANT。
+                    Conditions.push({
+                        beginCondition: current.maxCondition,
+                        endCondition: current.maxCondition,
+                        forecastToken: "STOP",
+                        parameters: [{ date: current.endTime, type: "FIRST_AT" }],
+                        startTime: current.startTime,
+                        endTime: current.endTime,
+                    });
+                } else {
+                    Conditions.push({
+                        beginCondition: current.maxCondition,
+                        endCondition: current.maxCondition,
+                        forecastToken: "CONSTANT",
+                        parameters: [],
+                        startTime: current.startTime,
+                        endTime: 0,
+                    });
+                }
             } else if (afterNext) {
                 Conditions.push({
                     beginCondition: current.maxCondition,
