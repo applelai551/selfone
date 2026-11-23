@@ -275,7 +275,7 @@ export default class ForecastNextHour {
         return Summaries;
     }
 
-    static Condition(summaries = []) {
+    static Condition(summaries = [], minutes = []) {
         Console.info("☑️ Condition");
         const Conditions = [];
         if (!summaries.length) {
@@ -333,15 +333,19 @@ export default class ForecastNextHour {
                     });
                 }
             } else if (!next) {
-                // 验证性改动（方案 A'）：单段持续降水若已带窗口内边界，则把边界写进 endTime，仍保持 CONSTANT，
-                // 避免 iOS 生成“N 分钟后停止下雨”这种与真实数据不符的文案；无边界时按原约定写零。
+                // 验证性改动（方案 A''）：单段持续降水若已带窗口内边界，则沿用 CONSTANT 并写入窗口结束 endTime，
+                // 同时用首/末分钟的 condition 反映真实强弱走向（如“暴雨转小雨”），避免谎报“停止下雨”。
+                // 无边界时仍按原约定写零，且起止 condition 都取该段最大值。
+                const hasBoundary = current.endTime > current.startTime;
+                const firstCondition = (hasBoundary && minutes[0]?.condition) || current.maxCondition;
+                const lastCondition = (hasBoundary && minutes.at(-1)?.condition) || current.maxCondition;
                 Conditions.push({
-                    beginCondition: current.maxCondition,
-                    endCondition: current.maxCondition,
+                    beginCondition: firstCondition,
+                    endCondition: lastCondition,
                     forecastToken: "CONSTANT",
                     parameters: [],
                     startTime: current.startTime,
-                    endTime: current.endTime > current.startTime ? current.endTime : 0,
+                    endTime: hasBoundary ? current.endTime : 0,
                 });
             } else if (afterNext) {
                 Conditions.push({

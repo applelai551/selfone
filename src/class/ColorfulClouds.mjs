@@ -319,7 +319,7 @@ export default class ColorfulClouds {
                             forecastNextHour.forecastEnd = minuteStemp + 60 * forecastNextHour.minutes.length;
                             forecastNextHour.minutes = ForecastNextHour.Minute(forecastNextHour.minutes, body?.result?.minutely?.description, "mmph");
                             forecastNextHour.summary = ForecastNextHour.Summary(forecastNextHour.minutes, this.version);
-                            forecastNextHour.condition = ForecastNextHour.Condition(forecastNextHour.summary);
+                            forecastNextHour.condition = ForecastNextHour.Condition(forecastNextHour.summary, forecastNextHour.minutes);
                             break;
                         }
                         case "error":

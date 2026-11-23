@@ -255,25 +255,26 @@ test("Condition preserves empty output for missing or unsupported non-alternatin
     assert.deepEqual(ForecastNextHour.Condition(makeSummaries("RRC")), []);
 });
 
-test("whole-hour continuous rain keeps CONSTANT with a window-end boundary", () => {
+test("whole-hour continuous rain keeps CONSTANT with a window-end boundary and the real trend", () => {
     const minutes = Array.from({ length: 60 }, (_, index) => ({
         precipitationChance: 100,
-        precipitationIntensity: 1,
+        precipitationIntensity: index < 20 ? 20 : index < 40 ? 5 : 0.5,
         startTime: BASE_TIME + index * 60,
     }));
 
     const normalized = ForecastNextHour.Minute(minutes, "未来一小时持续降雨");
     const summaries = ForecastNextHour.Summary(normalized);
-    const conditions = ForecastNextHour.Condition(summaries);
+    const conditions = ForecastNextHour.Condition(summaries, normalized);
 
     assert.equal(summaries.length, 1);
     assert.equal(summaries[0].endTime, BASE_TIME + 60 * 60);
-    assert.deepEqual(
-        conditions.map(condition => condition.forecastToken),
-        ["CONSTANT"],
-    );
+    assert.equal(conditions.length, 1);
+    assert.equal(conditions[0].forecastToken, "CONSTANT");
     assert.deepEqual(conditions[0].parameters, []);
+    assert.equal(conditions[0].startTime, BASE_TIME);
     assert.equal(conditions[0].endTime, BASE_TIME + 60 * 60);
+    assert.equal(conditions[0].beginCondition, "HEAVY_RAIN");
+    assert.equal(conditions[0].endCondition, "DRIZZLE");
 });
 
 test("multi-segment windows keep the open-ended zero endTime on the last summary", () => {
