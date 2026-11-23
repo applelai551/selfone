@@ -79,6 +79,27 @@ test("QWeather serializes provider updateTime as reportedTime in every forecast 
     assert.equal(roundTrip("forecastNextHour", nextHour).metadata.reportedTime, expectedMinutely);
 });
 
+test("ColorfulClouds minutely covers exactly one hour starting at the current minute", async () => {
+    // Apple 的 NextHour 窗口是 1 小时；之前截到 85 分钟会让部分系统直接不渲染分钟降水卡。
+    const originalHttpClient = globalThis.$httpClient;
+    const precipitation = Array.from({ length: 120 }, () => 0.2);
+    globalThis.$httpClient = {
+        get(request, callback) {
+            if (!request.url.includes("/minutely")) throw new Error(`unexpected request: ${request.url}`);
+            callback(null, { headers: {}, status: 200 }, JSON.stringify({ status: "ok", server_time: serverTime, location, result: { minutely: { status: "ok", description: "未来一小时有小雨", precipitation_2h: precipitation, probability: [0.8, 0.8, 0.8, 0.8] } } }));
+        },
+    };
+    try {
+        const product = await new ColorfulClouds(parameters, "token").Minutely();
+        assert.equal(product.minutes.length, 60);
+        assert.equal(product.forecastEnd - product.forecastStart, 3600);
+        assert.equal(product.forecastStart, Math.floor(serverTime / 60) * 60);
+        assert.deepEqual(product.minutes.slice(0, 2).map(minute => minute.startTime - product.forecastStart), [0, 60]);
+    } finally {
+        globalThis.$httpClient = originalHttpClient;
+    }
+});
+
 function roundTrip(dataSet, data) {
     const rawBody = WeatherKit2.encode(undefined, { [dataSet]: data });
     return WeatherKit2.decode(new ByteBuffer(rawBody), [dataSet])[dataSet];

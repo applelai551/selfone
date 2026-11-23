@@ -292,8 +292,9 @@ export default class ColorfulClouds {
                                 sourceType: "MODELED",
                             };
                             body.result.minutely.probability = body.result.minutely.probability.map(probability => Math.round(probability * 100));
-                            let minuteStemp = new Date(body?.server_time * 1000).setSeconds(0, 0);
-                            minuteStemp = minuteStemp.valueOf() / 1000 - 60;
+                            // 起点对齐当前整分钟；窗口收敛为 60 分钟，与 Apple NextHour 的 1 小时语义一致。
+                            // Align to the current minute and keep the window at 60 minutes to match Apple's NextHour contract.
+                            const minuteStemp = Math.floor(body?.server_time / 60) * 60;
                             forecastNextHour = {
                                 metadata: metadata,
                                 condition: [],
@@ -314,7 +315,7 @@ export default class ColorfulClouds {
                                 }),
                                 summary: [],
                             };
-                            forecastNextHour.minutes.length = Math.min(85, forecastNextHour.minutes.length);
+                            forecastNextHour.minutes.length = Math.min(60, forecastNextHour.minutes.length);
                             forecastNextHour.forecastEnd = minuteStemp + 60 * forecastNextHour.minutes.length;
                             forecastNextHour.minutes = ForecastNextHour.Minute(forecastNextHour.minutes, body?.result?.minutely?.description, "mmph");
                             forecastNextHour.summary = ForecastNextHour.Summary(forecastNextHour.minutes, this.version);
