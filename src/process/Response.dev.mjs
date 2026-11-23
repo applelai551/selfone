@@ -147,6 +147,7 @@ export async function Response($request, $response) {
                                             }
                                         }),
                                     );
+                                    keepSingleLogoPerProvider(body);
                                 }
                                 skipDefaultWrite = true;
                                 let text;
@@ -279,6 +280,7 @@ export async function Response($request, $response) {
                                             }
                                         }),
                                     );
+                                    keepSingleLogoPerProvider(body);
                                     rawBody = WeatherKit2.encode(ByteBuffer, body);
                                     break;
                                 }
@@ -371,6 +373,7 @@ export async function Response($request, $response) {
                                             }
                                         }),
                                     );
+                                    keepSingleLogoPerProvider(patch);
                                     if (Object.keys(patch).length > 0) {
                                         for (const name of ["airQuality", "currentWeather", "forecastDaily", "forecastHourly"]) {
                                             if (patch[name]) patch[name] = normalizeWK3WeatherProduct(patch[name]);
@@ -474,8 +477,7 @@ async function InjectForecastDaily(forecastDaily, Settings, enviroments) {
     if (newForecastDaily?.metadata) {
         forecastDaily.metadata = { ...forecastDaily?.metadata, ...newForecastDaily.metadata };
         Weather.mergeForecast(forecastDaily?.days, newForecastDaily?.days);
-        // 逐日产品不写来源图标，避免底部来源行重复同一图标
-        delete forecastDaily.metadata.providerLogo;
+        forecastDaily.metadata.providerLogo = providerNameToLogo(forecastDaily.metadata.providerName) ?? forecastDaily.metadata.providerLogo;
         //Console.debug(`forecastDaily: ${JSON.stringify(forecastDaily, null, 2)}`);
     }
     Console.info("✅ InjectForecastDaily");
@@ -516,8 +518,7 @@ async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
     if (newForecastHourly?.metadata) {
         forecastHourly.metadata = { ...forecastHourly?.metadata, ...newForecastHourly.metadata };
         forecastHourly.hours = Weather.mergeForecast(forecastHourly?.hours, newForecastHourly?.hours);
-        // 逐小时产品不写来源图标，避免底部来源行重复同一图标
-        delete forecastHourly.metadata.providerLogo;
+        forecastHourly.metadata.providerLogo = providerNameToLogo(forecastHourly.metadata.providerName) ?? forecastHourly.metadata.providerLogo;
         //Console.debug(`forecastHourly: ${JSON.stringify(forecastHourly, null, 2)}`);
     }
     Console.info("✅ InjectForecastHourly");
@@ -556,8 +557,7 @@ async function InjectForecastNextHour(forecastNextHour, Settings, enviroments) {
     if (newForecastNextHour?.metadata) {
         newForecastNextHour.metadata = { ...forecastNextHour?.metadata, ...newForecastNextHour.metadata };
         forecastNextHour = { ...forecastNextHour, ...newForecastNextHour };
-        // 未来一小时产品不写来源图标，避免底部来源行重复同一图标
-        delete forecastNextHour.metadata.providerLogo;
+        forecastNextHour.metadata.providerLogo = providerNameToLogo(forecastNextHour.metadata.providerName) ?? forecastNextHour.metadata.providerLogo;
         Console.debug(`forecastNextHour: ${JSON.stringify(forecastNextHour, null, 2)}`);
     }
     Console.info("✅ InjectForecastNextHour");
@@ -626,6 +626,26 @@ function normalizeAirQualityAttributionUrl(attributionUrl, latitude, longitude) 
 }
 
 /**
+ * 同一来源只保留一个产品携带 providerLogo。
+ * iOS 会按产品逐个展示来源图标且不按地址去重，这里在写回前按来源（图标文件名）裁剪，
+ * 保证彩云、和风等每个来源最多只出现一个图标。
+ * @param {any} products - 以数据集名为键的产品集合 / Products keyed by data set name.
+ * @returns {any} 处理后的产品集合 / The same products collection.
+ */
+function keepSingleLogoPerProvider(products) {
+    const seen = new Set();
+    for (const name of ["currentWeather", "weatherAlerts", "airQuality", "forecastDaily", "forecastHourly", "forecastNextHour"]) {
+        const metadata = products?.[name]?.metadata;
+        const providerLogo = metadata?.providerLogo;
+        if (!providerLogo) continue;
+        const providerKey = String(providerLogo).split("/").pop();
+        if (seen.has(providerKey)) delete metadata.providerLogo;
+        else seen.add(providerKey);
+    }
+    return products;
+}
+
+/**
  * 注入并合并空气质量数据（污染物、指数、昨日对比）
  * @param {any} airQuality - WeatherKit 原始空气质量对象
  * @param {import('./types').Settings} Settings - 设置对象
@@ -666,13 +686,15 @@ async function InjectAirQuality(airQuality, Settings, Caches, enviroments) {
         ...(needInjectComparison && comparisonMetadata?.providerName && !comparisonMetadata.temporarilyUnavailable ? [`对比昨日：\n${comparisonMetadata.providerName}`] : []),
     ];
 
-    // Step6. 合并输出：优先使用可用注入结果，并统一 metadata / pollutants / previousDayComparison
+    // Step6. 选取首个有效 provider，生成统一 logo
+    const providerLogo = providerNameToLogo(weatherKitMetadata?.providerName || pollutantMetadata?.providerName || indexMetadata?.providerName || comparisonMetadata?.providerName);
+
+    // Step7. 合并输出：优先使用可用注入结果，并统一 metadata / pollutants / previousDayComparison
     const metadata = {
         ...(airQuality?.metadata ? airQuality.metadata : injectedPollutants?.metadata),
         providerName: providers.join("\n"),
+        ...(providerLogo ? { providerLogo } : {}),
     };
-    // 空气质量不写来源图标，底部来源行只保留实况与预警，避免同一图标重复出现
-    delete metadata.providerLogo;
     // 统一 AQ 归属坐标：用主请求坐标覆盖 Apple 和风 AQ 网格点的经纬度与归属链接
     const requestLatitude = Number(enviroments?.latitude);
     const requestLongitude = Number(enviroments?.longitude);

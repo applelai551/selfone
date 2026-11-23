@@ -164,7 +164,7 @@ test("response WeatherAlert injection only selects and merges provider slot obje
     }
 });
 
-test("response provider logos stay limited to current weather and alerts", async () => {
+test("response provider logos are deduplicated per provider before write-back", async () => {
     for (const path of ["../src/process/Response.mjs", "../src/process/Response.dev.mjs"]) {
         const source = await readFile(new URL(path, import.meta.url), "utf8");
         const section = name => {
@@ -172,15 +172,15 @@ test("response provider logos stay limited to current weather and alerts", async
             return source.slice(start, source.indexOf("async function ", start + 1));
         };
 
-        // 底部来源行只保留实况与预警两个图标
-        assert.match(section("InjectCurrentWeather"), /currentWeather\.metadata\.providerLogo\s*=\s*providerNameToLogo\(/);
-        assert.match(section("InjectWeatherAlerts"), /weatherAlerts\.metadata\.providerLogo\s*(?:\|\|=|=)\s*providerNameToLogo\(/);
-        // 其余产品不写来源图标，避免同一图标重复出现
-        assert.match(section("InjectForecastDaily"), /delete forecastDaily\.metadata\.providerLogo/);
-        assert.match(section("InjectForecastHourly"), /delete forecastHourly\.metadata\.providerLogo/);
-        assert.match(section("InjectForecastNextHour"), /delete forecastNextHour\.metadata\.providerLogo/);
-        assert.doesNotMatch(section("InjectAirQuality"), /providerNameToLogo\(/);
-        assert.match(section("InjectAirQuality"), /delete metadata\.providerLogo/);
+        // 每个可替换产品先写入自家来源图标
+        for (const method of ["InjectCurrentWeather", "InjectForecastDaily", "InjectForecastHourly", "InjectForecastNextHour", "InjectWeatherAlerts"]) {
+            assert.match(section(method), /\.metadata\.providerLogo\s*(?:\|\|=|=)\s*providerNameToLogo\(/, `${path}: ${method}`);
+        }
+        assert.match(section("InjectAirQuality"), /const providerLogo = providerNameToLogo\(/);
+
+        // 写回前统一按来源去重：同一来源最多保留一个图标
+        assert.match(source, /function keepSingleLogoPerProvider\(products\) \{/);
+        assert.equal(source.match(/keepSingleLogoPerProvider\((?:body|patch)\);/g)?.length, 3, path);
     }
 });
 

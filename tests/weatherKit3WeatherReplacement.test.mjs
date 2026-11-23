@@ -217,3 +217,42 @@ test("airQuality attribution is aligned with the main request coordinates", asyn
     assert.ok(Math.abs(airQuality.metadata.longitude - 121.555) < 1e-4);
     assert.equal(airQuality.metadata.attributionUrl, "https://www.qweather.com/air/a/29.887,121.555?from=AppleWeatherService&lang=zh");
 });
+
+function mockProviderWeather(t, currentProvider, otherProvider) {
+    // 每个产品使用独立 metadata，避免注入器覆写 providerLogo 时污染其他产品
+    const product = (providerName, extra) => ({ metadata: { ...metadata, providerName }, ...extra });
+    t.mock.method(ColorfulClouds.prototype, "CurrentWeather", async () => product(currentProvider, { temperature: 27.125, conditionCode: ["RAIN"] }));
+    t.mock.method(ColorfulClouds.prototype, "Daily", async () => product(otherProvider, { days: [{ forecastStart: original.forecastDaily.days[0].forecastStart, temperatureMax: 31.25, conditionCode: ["SNOW"], daytimeForecast: { cloudCover: 80 } }] }));
+    t.mock.method(ColorfulClouds.prototype, "ForecastHourly", async () => product(otherProvider, { hours: [{ forecastStart: original.forecastHourly.hours[0].forecastStart, temperature: 24.5, conditionCode: ["RAIN"], precipitationAmount: { expected: 2.5, minimum: 2.5, maximum: 2.5 } }] }));
+}
+
+function decodeWeatherProduct(body) {
+    return WK3.Codec.decode("Weather", WK3.Weather.getRootAsWeather(new ByteBuffer(body)));
+}
+
+test("a single provider across products keeps only one provider logo", async t => {
+    mockProviderWeather(t, "彩云天气", "彩云天气");
+    const body = decodeWeatherProduct((await response()).body);
+
+    assert.match(body.currentWeather.metadata.providerLogo, /ColorfulClouds\.png$/);
+    assert.equal(body.forecastDaily.metadata.providerLogo, undefined);
+    assert.equal(body.forecastHourly.metadata.providerLogo, undefined);
+});
+
+test("mixed providers keep at most one logo per provider", async t => {
+    mockProviderWeather(t, "彩云天气", "和风天气");
+    const body = decodeWeatherProduct((await response()).body);
+
+    assert.match(body.currentWeather.metadata.providerLogo, /ColorfulClouds\.png$/);
+    assert.match(body.forecastDaily.metadata.providerLogo, /QWeather\.png$/);
+    assert.equal(body.forecastHourly.metadata.providerLogo, undefined);
+});
+
+test("QWeather-only products keep a single QWeather logo", async t => {
+    mockProviderWeather(t, "和风天气", "和风天气");
+    const body = decodeWeatherProduct((await response()).body);
+
+    assert.match(body.currentWeather.metadata.providerLogo, /QWeather\.png$/);
+    assert.equal(body.forecastDaily.metadata.providerLogo, undefined);
+    assert.equal(body.forecastHourly.metadata.providerLogo, undefined);
+});
