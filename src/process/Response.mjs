@@ -366,7 +366,7 @@ export async function Response($request, $response) {
                                         }),
                                     );
                                     if (Object.keys(patch).length > 0) {
-                                        for (const name of ["currentWeather", "forecastDaily", "forecastHourly"]) {
+                                        for (const name of ["airQuality", "currentWeather", "forecastDaily", "forecastHourly"]) {
                                             if (patch[name]) patch[name] = normalizeWK3WeatherProduct(patch[name]);
                                         }
                                         rawBody = WeatherKit3.encode(ByteBuffer, patch);

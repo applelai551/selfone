@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test, { beforeEach } from "node:test";
 import { WK3 } from "@nsringo/weatherkit";
 import { ByteBuffer, Builder } from "flatbuffers";
+import normalizeWK3WeatherProduct from "../src/function/normalizeWK3WeatherProduct.mjs";
 
 globalThis.$environment = { "surge-version": "test" };
 globalThis.$persistentStore = { read: () => null, write: () => true };
@@ -136,4 +137,44 @@ test("provider scalars are normalized to WK3 shapes instead of dropping the prod
     assert.deepEqual(body.forecastHourly.hours[0].conditionCode, ["RAIN"]);
     assert.equal(body.forecastHourly.hours[0].windDirection, 247);
     assert.deepEqual(body.forecastHourly.hours[0].precipitationAmount, { expected: 0, minimum: 0, maximum: 0 });
+});
+
+test("airQuality metadata is normalized to WK3 uint/float fields instead of dropping the product", () => {
+    // 和风空气质量注入器给出带小数的秒与字符串坐标，WK3 的 metadata 要求 uint/float。
+    const product = normalizeWK3WeatherProduct({
+        metadata: {
+            attributionUrl: "https://www.caiyunapp.com/h5/#121.124,31.151",
+            expireTime: 1795405914.09,
+            language: "zh-CN",
+            latitude: "31.151",
+            longitude: "121.124",
+            providerName: "污染物：和风天气",
+            readTime: 1795402314.09,
+            reportedTime: 1795402314.09,
+            temporarilyUnavailable: false,
+            sourceType: "MODELED",
+        },
+        categoryIndex: 1,
+        index: 42,
+        isSignificant: false,
+        pollutants: [{ pollutantType: "PM10", amount: 41, units: "MICROGRAMS_PER_CUBIC_METER" }],
+        previousDayComparison: "BETTER",
+        primaryPollutant: "PM10",
+        scale: "HJ6332012",
+    });
+
+    const builder = new Builder(2048);
+    const airQualityOffset = WK3.Codec.encode("AirQuality", builder, product);
+    WK3.Weather.startWeather(builder);
+    WK3.Weather.addAirQuality(builder, airQualityOffset);
+    builder.finish(WK3.Weather.endWeather(builder));
+    const airQuality = WK3.Codec.decode("Weather", WK3.Weather.getRootAsWeather(new ByteBuffer(builder.asUint8Array()))).airQuality;
+
+    assert.equal(airQuality.metadata.readTime, 1795402314);
+    assert.equal(airQuality.metadata.reportedTime, 1795402314);
+    assert.equal(airQuality.metadata.expireTime, 1795405914);
+    assert.ok(Math.abs(airQuality.metadata.latitude - 31.151) < 1e-4);
+    assert.ok(Math.abs(airQuality.metadata.longitude - 121.124) < 1e-4);
+    assert.equal(airQuality.index, 42);
+    assert.equal(airQuality.primaryPollutant, "PM10");
 });
