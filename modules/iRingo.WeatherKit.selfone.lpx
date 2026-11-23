@@ -7,7 +7,7 @@
 #!tag =  iRingo
 #!system = iOS,iPadOS,macOS,watchOS
 #!date = 2026-11-23 18:20:00
-#!version = 4.0.0-beta4-selfone.8
+#!version = 4.0.0-beta4-selfone.9
 #!system_version = 18
 
 [Argument]
@@ -35,8 +35,8 @@ http-response ^https?:\/\/weatherkit\.apple\.com\/api\/v1\/availability\/ requir
 http-request ^https?:\/\/weatherkit\.apple\.com\/api\/v1\/airQualityScale\/ script-path=https://github.com/NSRingo/WeatherKit/releases/download/v4.0.0-beta4/request.bundle.js, tag=🌤 WeatherKit.api.v1.airQualityScale.request, argument=[{DataSets},{Weather.Provider},{WeatherAlerts.Provider},{NextHour.Provider},{AirQuality.Current.Pollutants.Provider},{AirQuality.Calculate.Algorithm},{API.ColorfulClouds.Token},{API.QWeather.Host},{API.QWeather.Token},{API.WAQI.Token},{Storage},{LogLevel}]
 http-request ^https?:\/\/weatherkit\.apple\.com\/api\/v1\/weatherAlerts\?[^#]*&ids=[^&#]*-[0-9]{9}(?:&|$) script-path=https://github.com/NSRingo/WeatherKit/releases/download/v4.0.0-beta4/request.bundle.js, tag=🌤 WeatherKit.api.v1.weatherAlerts.html.request, argument=[{DataSets},{Weather.Provider},{WeatherAlerts.Provider},{NextHour.Provider},{AirQuality.Current.Pollutants.Provider},{AirQuality.Calculate.Algorithm},{API.ColorfulClouds.Token},{API.QWeather.Host},{API.QWeather.Token},{API.WAQI.Token},{Storage},{LogLevel}]
 http-request ^https?:\/\/weatherkit\.apple\.com\/api\/v1\/weatherAlerts\?[^#]*&ids=-?[0-9]+(?:\.[0-9]+)?,-?[0-9]+(?:\.[0-9]+)?(?:&|$) script-path=https://github.com/NSRingo/WeatherKit/releases/download/v4.0.0-beta4/request.bundle.js, tag=🌤 WeatherKit.api.v1.weatherAlerts.api.request, argument=[{DataSets},{Weather.Provider},{WeatherAlerts.Provider},{NextHour.Provider},{AirQuality.Current.Pollutants.Provider},{AirQuality.Calculate.Algorithm},{API.ColorfulClouds.Token},{API.QWeather.Host},{API.QWeather.Token},{API.WAQI.Token},{Storage},{LogLevel}]
-http-response ^https?:\/\/weatherkit\.apple\.com\/api\/v2\/weather\/ requires-body=1, binary-body-mode=1, script-path=https://raw.githubusercontent.com/applelai551/selfone/main/dist/response.bundle.js?v=8, tag=🌤 WeatherKit.api.v2.weather.response, argument=[{DataSets},{Weather.Provider},{WeatherAlerts.Provider},{NextHour.Provider},{AirQuality.Current.Pollutants.Provider},{AirQuality.Calculate.Algorithm},{API.ColorfulClouds.Token},{API.QWeather.Host},{API.QWeather.Token},{API.WAQI.Token},{Storage},{LogLevel}]
-http-response ^https?:\/\/weatherkit\.apple\.com\/api\/v3\/weather\/ requires-body=1, binary-body-mode=1, script-path=https://raw.githubusercontent.com/applelai551/selfone/main/dist/response.bundle.js?v=8, tag=🌤 WeatherKit.api.v3.weather.response, argument=[{DataSets},{Weather.Provider},{WeatherAlerts.Provider},{NextHour.Provider},{AirQuality.Current.Pollutants.Provider},{AirQuality.Calculate.Algorithm},{API.ColorfulClouds.Token},{API.QWeather.Host},{API.QWeather.Token},{API.WAQI.Token},{Storage},{LogLevel}]
+http-response ^https?:\/\/weatherkit\.apple\.com\/api\/v2\/weather\/ requires-body=1, binary-body-mode=1, script-path=https://raw.githubusercontent.com/applelai551/selfone/main/dist/response.bundle.js?v=9, tag=🌤 WeatherKit.api.v2.weather.response, argument=[{DataSets},{Weather.Provider},{WeatherAlerts.Provider},{NextHour.Provider},{AirQuality.Current.Pollutants.Provider},{AirQuality.Calculate.Algorithm},{API.ColorfulClouds.Token},{API.QWeather.Host},{API.QWeather.Token},{API.WAQI.Token},{Storage},{LogLevel}]
+http-response ^https?:\/\/weatherkit\.apple\.com\/api\/v3\/weather\/ requires-body=1, binary-body-mode=1, script-path=https://raw.githubusercontent.com/applelai551/selfone/main/dist/response.bundle.js?v=9, tag=🌤 WeatherKit.api.v3.weather.response, argument=[{DataSets},{Weather.Provider},{WeatherAlerts.Provider},{NextHour.Provider},{AirQuality.Current.Pollutants.Provider},{AirQuality.Calculate.Algorithm},{API.ColorfulClouds.Token},{API.QWeather.Host},{API.QWeather.Token},{API.WAQI.Token},{Storage},{LogLevel}]
 
 [MITM]
 hostname = weatherkit.apple.com

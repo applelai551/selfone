@@ -333,26 +333,16 @@ export default class ForecastNextHour {
                     });
                 }
             } else if (!next) {
-                if (current.endTime > current.startTime) {
-                    // 验证性改动（方案 A）：单段持续降水已带窗口内边界时输出 STOP + FIRST_AT，不再使用 CONSTANT。
-                    Conditions.push({
-                        beginCondition: current.maxCondition,
-                        endCondition: current.maxCondition,
-                        forecastToken: "STOP",
-                        parameters: [{ date: current.endTime, type: "FIRST_AT" }],
-                        startTime: current.startTime,
-                        endTime: current.endTime,
-                    });
-                } else {
-                    Conditions.push({
-                        beginCondition: current.maxCondition,
-                        endCondition: current.maxCondition,
-                        forecastToken: "CONSTANT",
-                        parameters: [],
-                        startTime: current.startTime,
-                        endTime: 0,
-                    });
-                }
+                // 验证性改动（方案 A'）：单段持续降水若已带窗口内边界，则把边界写进 endTime，仍保持 CONSTANT，
+                // 避免 iOS 生成“N 分钟后停止下雨”这种与真实数据不符的文案；无边界时按原约定写零。
+                Conditions.push({
+                    beginCondition: current.maxCondition,
+                    endCondition: current.maxCondition,
+                    forecastToken: "CONSTANT",
+                    parameters: [],
+                    startTime: current.startTime,
+                    endTime: current.endTime > current.startTime ? current.endTime : 0,
+                });
             } else if (afterNext) {
                 Conditions.push({
                     beginCondition: current.maxCondition,
