@@ -164,18 +164,23 @@ test("response WeatherAlert injection only selects and merges provider slot obje
     }
 });
 
-test("response provider logos are finalized inside Inject methods", async () => {
-    const injectMethods = ["InjectCurrentWeather", "InjectForecastDaily", "InjectForecastHourly", "InjectForecastNextHour", "InjectWeatherAlerts"];
+test("response provider logos stay limited to current weather and alerts", async () => {
     for (const path of ["../src/process/Response.mjs", "../src/process/Response.dev.mjs"]) {
         const source = await readFile(new URL(path, import.meta.url), "utf8");
-        const topLevel = source.slice(0, source.indexOf("async function InjectCurrentWeather"));
+        const section = name => {
+            const start = source.indexOf(`async function ${name}`);
+            return source.slice(start, source.indexOf("async function ", start + 1));
+        };
 
-        assert.doesNotMatch(topLevel, /\.metadata\.providerLogo\s*=/);
-        for (const [index, method] of injectMethods.entries()) {
-            const end = injectMethods[index + 1] ? source.indexOf(`async function ${injectMethods[index + 1]}`) : source.indexOf("async function InjectAirQuality");
-            const body = source.slice(source.indexOf(`async function ${method}`), end);
-            assert.match(body, /\.metadata\.providerLogo\s*(?:\|\|=|=)\s*providerNameToLogo\(/, `${path}: ${method}`);
-        }
+        // 底部来源行只保留实况与预警两个图标
+        assert.match(section("InjectCurrentWeather"), /currentWeather\.metadata\.providerLogo\s*=\s*providerNameToLogo\(/);
+        assert.match(section("InjectWeatherAlerts"), /weatherAlerts\.metadata\.providerLogo\s*(?:\|\|=|=)\s*providerNameToLogo\(/);
+        // 其余产品不写来源图标，避免同一图标重复出现
+        assert.match(section("InjectForecastDaily"), /delete forecastDaily\.metadata\.providerLogo/);
+        assert.match(section("InjectForecastHourly"), /delete forecastHourly\.metadata\.providerLogo/);
+        assert.match(section("InjectForecastNextHour"), /delete forecastNextHour\.metadata\.providerLogo/);
+        assert.doesNotMatch(section("InjectAirQuality"), /providerNameToLogo\(/);
+        assert.match(section("InjectAirQuality"), /delete metadata\.providerLogo/);
     }
 });
 

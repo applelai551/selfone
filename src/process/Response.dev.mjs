@@ -474,7 +474,8 @@ async function InjectForecastDaily(forecastDaily, Settings, enviroments) {
     if (newForecastDaily?.metadata) {
         forecastDaily.metadata = { ...forecastDaily?.metadata, ...newForecastDaily.metadata };
         Weather.mergeForecast(forecastDaily?.days, newForecastDaily?.days);
-        forecastDaily.metadata.providerLogo = providerNameToLogo(forecastDaily.metadata.providerName) ?? forecastDaily.metadata.providerLogo;
+        // 逐日产品不写来源图标，避免底部来源行重复同一图标
+        delete forecastDaily.metadata.providerLogo;
         //Console.debug(`forecastDaily: ${JSON.stringify(forecastDaily, null, 2)}`);
     }
     Console.info("✅ InjectForecastDaily");
@@ -515,7 +516,8 @@ async function InjectForecastHourly(forecastHourly, Settings, enviroments) {
     if (newForecastHourly?.metadata) {
         forecastHourly.metadata = { ...forecastHourly?.metadata, ...newForecastHourly.metadata };
         forecastHourly.hours = Weather.mergeForecast(forecastHourly?.hours, newForecastHourly?.hours);
-        forecastHourly.metadata.providerLogo = providerNameToLogo(forecastHourly.metadata.providerName) ?? forecastHourly.metadata.providerLogo;
+        // 逐小时产品不写来源图标，避免底部来源行重复同一图标
+        delete forecastHourly.metadata.providerLogo;
         //Console.debug(`forecastHourly: ${JSON.stringify(forecastHourly, null, 2)}`);
     }
     Console.info("✅ InjectForecastHourly");
@@ -554,7 +556,8 @@ async function InjectForecastNextHour(forecastNextHour, Settings, enviroments) {
     if (newForecastNextHour?.metadata) {
         newForecastNextHour.metadata = { ...forecastNextHour?.metadata, ...newForecastNextHour.metadata };
         forecastNextHour = { ...forecastNextHour, ...newForecastNextHour };
-        forecastNextHour.metadata.providerLogo = providerNameToLogo(forecastNextHour.metadata.providerName) ?? forecastNextHour.metadata.providerLogo;
+        // 未来一小时产品不写来源图标，避免底部来源行重复同一图标
+        delete forecastNextHour.metadata.providerLogo;
         Console.debug(`forecastNextHour: ${JSON.stringify(forecastNextHour, null, 2)}`);
     }
     Console.info("✅ InjectForecastNextHour");
@@ -663,15 +666,13 @@ async function InjectAirQuality(airQuality, Settings, Caches, enviroments) {
         ...(needInjectComparison && comparisonMetadata?.providerName && !comparisonMetadata.temporarilyUnavailable ? [`对比昨日：\n${comparisonMetadata.providerName}`] : []),
     ];
 
-    // Step6. 选取首个有效 provider，生成统一 logo
-    const providerLogo = providerNameToLogo(weatherKitMetadata?.providerName || pollutantMetadata?.providerName || indexMetadata?.providerName || comparisonMetadata?.providerName);
-
-    // Step7. 合并输出：优先使用可用注入结果，并统一 metadata / pollutants / previousDayComparison
+    // Step6. 合并输出：优先使用可用注入结果，并统一 metadata / pollutants / previousDayComparison
     const metadata = {
         ...(airQuality?.metadata ? airQuality.metadata : injectedPollutants?.metadata),
         providerName: providers.join("\n"),
-        ...(providerLogo ? { providerLogo } : {}),
     };
+    // 空气质量不写来源图标，底部来源行只保留实况与预警，避免同一图标重复出现
+    delete metadata.providerLogo;
     // 统一 AQ 归属坐标：用主请求坐标覆盖 Apple 和风 AQ 网格点的经纬度与归属链接
     const requestLatitude = Number(enviroments?.latitude);
     const requestLongitude = Number(enviroments?.longitude);
