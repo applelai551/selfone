@@ -105,6 +105,8 @@ export async function Response($request, $response) {
                                         qWeather: new QWeather(providerParameters, Settings?.API?.QWeather?.Token || "bdd98ec1d87747f3a2e8b1741a5af796", Settings?.API?.QWeather?.Host),
                                         waqi: new WAQI(parameters, Settings?.API?.WAQI?.Token),
                                         country: parameters.country,
+                                        latitude: parameters.latitude,
+                                        longitude: parameters.longitude,
                                     };
                                     const replaceWeather = async (name, inject) => {
                                         const original = body[name];
@@ -209,6 +211,8 @@ export async function Response($request, $response) {
                                         qWeather: new QWeather(providerParameters, Settings?.API?.QWeather?.Token || "bdd98ec1d87747f3a2e8b1741a5af796", Settings?.API?.QWeather?.Host),
                                         waqi: new WAQI(parameters, Settings?.API?.WAQI?.Token),
                                         country: parameters.country,
+                                        latitude: parameters.latitude,
+                                        longitude: parameters.longitude,
                                     };
 
                                     await Promise.all(
@@ -300,6 +304,8 @@ export async function Response($request, $response) {
                                         qWeather: new QWeather(providerParameters, Settings?.API?.QWeather?.Token || "bdd98ec1d87747f3a2e8b1741a5af796", Settings?.API?.QWeather?.Host),
                                         waqi: new WAQI(parameters, Settings?.API?.WAQI?.Token),
                                         country: parameters.country,
+                                        latitude: parameters.latitude,
+                                        longitude: parameters.longitude,
                                     };
                                     const patch = {};
                                     const replaceWeather = async (name, inject) => {
@@ -597,6 +603,26 @@ async function InjectWeatherAlerts(weatherAlerts, Settings, enviroments) {
 }
 
 /**
+ * 把和风空气质量页面链接的坐标改写为主请求坐标。
+ * Apple 的和风 AQ 产品会吸附到约 1km 网格点，其 attributionUrl 与 metadata 经纬度都比请求点偏移，
+ * 改写后归属页显示的位置才与天气产品一致。
+ * @param {string} attributionUrl 原始归属链接 / Original attribution URL.
+ * @param {number} latitude 主请求纬度 / Main request latitude.
+ * @param {number} longitude 主请求经度 / Main request longitude.
+ * @returns {string} 改写后的归属链接 / Rewritten attribution URL.
+ */
+function normalizeAirQualityAttributionUrl(attributionUrl, latitude, longitude) {
+    try {
+        const url = new URL(attributionUrl);
+        if (url.hostname !== "www.qweather.com" || !/^\/air\/a\/-?[\d.]+,-?[\d.]+\/?$/.test(url.pathname)) return attributionUrl;
+        url.pathname = `/air/a/${latitude},${longitude}`;
+        return url.toString();
+    } catch {
+        return attributionUrl;
+    }
+}
+
+/**
  * 注入并合并空气质量数据（污染物、指数、昨日对比）
  * @param {any} airQuality - WeatherKit 原始空气质量对象
  * @param {import('./types').Settings} Settings - 设置对象
@@ -641,14 +667,23 @@ async function InjectAirQuality(airQuality, Settings, Caches, enviroments) {
     const providerLogo = providerNameToLogo(weatherKitMetadata?.providerName || pollutantMetadata?.providerName || indexMetadata?.providerName || comparisonMetadata?.providerName);
 
     // Step7. 合并输出：优先使用可用注入结果，并统一 metadata / pollutants / previousDayComparison
+    const metadata = {
+        ...(airQuality?.metadata ? airQuality.metadata : injectedPollutants?.metadata),
+        providerName: providers.join("\n"),
+        ...(providerLogo ? { providerLogo } : {}),
+    };
+    // 统一 AQ 归属坐标：用主请求坐标覆盖 Apple 和风 AQ 网格点的经纬度与归属链接
+    const requestLatitude = Number(enviroments?.latitude);
+    const requestLongitude = Number(enviroments?.longitude);
+    if (Number.isFinite(requestLatitude) && Number.isFinite(requestLongitude)) {
+        metadata.latitude = requestLatitude;
+        metadata.longitude = requestLongitude;
+        metadata.attributionUrl = normalizeAirQualityAttributionUrl(metadata.attributionUrl, requestLatitude, requestLongitude);
+    }
     airQuality = {
         ...airQuality,
         ...(injectedIndex?.metadata && !injectedIndex.metadata.temporarilyUnavailable ? injectedIndex : {}),
-        metadata: {
-            ...(airQuality?.metadata ? airQuality.metadata : injectedPollutants?.metadata),
-            providerName: providers.join("\n"),
-            ...(providerLogo ? { providerLogo } : {}),
-        },
+        metadata,
         pollutants: AirQuality.ConvertPollutants(airQuality, injectedPollutants, needInjectIndex, injectedIndex, Settings) ?? [],
         previousDayComparison: injectedComparison?.previousDayComparison ?? AirQuality.Config.CompareCategoryIndexes.UNKNOWN,
     };

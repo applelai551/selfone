@@ -12,9 +12,9 @@ const [{ Response }, { Request }, { default: ColorfulClouds }] = await Promise.a
 // 合成的 WK3 根响应，所有取值均为虚构；真机成对样本保留在闭源协议仓 apple.WeatherKit。
 // Synthetic WK3 root response with fictional values only; the paired on-device
 // captures live in the private apple.WeatherKit protocol repository.
-function buildWeather({ futureCurrentField = false } = {}) {
+function buildWeather({ futureCurrentField = false, airQualityData = { metadata: { providerName: "synthetic" }, pollutants: [] } } = {}) {
 	const builder = new Builder(4096);
-	const airQuality = WK3.Codec.encode("AirQuality", builder, { metadata: { providerName: "synthetic" }, pollutants: [] });
+	const airQuality = WK3.Codec.encode("AirQuality", builder, airQualityData);
 	const forecastDaily = WK3.Codec.encode("DailyForecastData", builder, { days: [{ forecastStart: 1763200000, temperatureMax: 30 }] });
 	const forecastHourly = WK3.Codec.encode("HourlyForecastData", builder, { hours: [{ forecastStart: 1763200000, temperature: 21 }] });
 	const forecastPeriodic = WK3.Codec.encode("PeriodicForecasts", builder, { forecasts: [] });
@@ -177,4 +177,43 @@ test("airQuality metadata is normalized to WK3 uint/float fields instead of drop
     assert.ok(Math.abs(airQuality.metadata.longitude - 121.124) < 1e-4);
     assert.equal(airQuality.index, 42);
     assert.equal(airQuality.primaryPollutant, "PM10");
+});
+
+test("airQuality attribution is aligned with the main request coordinates", async () => {
+    // Apple 的和风 AQ 产品会给出约 1km 外的网格点坐标，归属链接应统一改回主请求坐标。
+    globalThis.$argument = { LogLevel: "OFF", Storage: "Argument", DataSets: "airQuality" };
+    const body = buildWeather({
+        airQualityData: {
+            metadata: {
+                attributionUrl: "https://www.qweather.com/air/a/29.8975,121.5594?from=AppleWeatherService&lang=zh",
+                expireTime: 1795408200,
+                language: "zh",
+                latitude: 29.8975,
+                longitude: 121.5594,
+                providerName: "和风天气",
+                readTime: 1795404601,
+                reportedTime: 1795399200,
+                temporarilyUnavailable: false,
+                sourceType: "STATION",
+            },
+            categoryIndex: 1,
+            index: 27,
+            isSignificant: true,
+            pollutants: [{ pollutantType: "PM10", amount: 27, units: "MICROGRAMS_PER_CUBIC_METER" }],
+            previousDayComparison: "SAME",
+            primaryPollutant: "PM10",
+            scale: "HJ6332012",
+        },
+    });
+    const output = (
+        await Response(
+            { method: "GET", url: "https://weatherkit.apple.com/api/v3/weather/en-US/29.887/121.555?country=CN&dataSets=airQuality", headers: { Accept: "application/vnd.apple.flatbuffer;messageType=WK3.Weather", "User-Agent": "WeatherWidget" } },
+            { status: 200, headers: { "Content-Type": "application/vnd.apple.flatbuffer;messageType=WK3.Weather" }, bodyBytes: body },
+        )
+    ).body;
+    const airQuality = WK3.Codec.decode("Weather", WK3.Weather.getRootAsWeather(new ByteBuffer(output))).airQuality;
+
+    assert.ok(Math.abs(airQuality.metadata.latitude - 29.887) < 1e-4);
+    assert.ok(Math.abs(airQuality.metadata.longitude - 121.555) < 1e-4);
+    assert.equal(airQuality.metadata.attributionUrl, "https://www.qweather.com/air/a/29.887,121.555?from=AppleWeatherService&lang=zh");
 });
