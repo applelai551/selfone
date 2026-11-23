@@ -490,7 +490,7 @@ test("response selects ColorfulClouds v2.6 alerts explicitly", async () => {
             const decoded = WeatherKit2.decode(new ByteBuffer(new Uint8Array(response.body)), ["weatherAlerts"]);
 
             assert.equal(sourceUrl.toString(), "https://api.caiyunapp.com/v2.6/colorful-token/121.47,31.23/realtime?lang=zh_CN&alert=true");
-            assert.equal(decoded.weatherAlerts.metadata.attributionUrl, "https://www.caiyunapp.com/h5");
+            assert.equal(decoded.weatherAlerts.metadata.attributionUrl, "https://www.caiyunapp.com/h5/#121.47,31.23");
             assert.equal(decoded.weatherAlerts.detailsUrl, "https://weatherkit.apple.com/alertDetails/index.html?ids=31.23,121.47&lang=zh-CN&party=ColorfulClouds");
             assert.equal(decoded.weatherAlerts.alerts[0].description, "高温橙色预警");
         }

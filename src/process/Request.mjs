@@ -173,7 +173,7 @@ async function GetWeatherAlerts(identifier, parameters, Settings, headers) {
                         const colorfulClouds = new ColorfulClouds(parameters, Settings?.API?.ColorfulClouds?.Token || "Y2FpeXVuX25vdGlmeQ==");
                         const source = await colorfulClouds.WeatherAlert();
                         body = WeatherAlerts.Build(source, {
-                            attributionUrl: source?.metadata?.attributionUrl ?? "https://www.caiyunapp.com/h5",
+                            attributionUrl: source?.metadata?.attributionUrl ?? `https://www.caiyunapp.com/h5/#${parameters.longitude},${parameters.latitude}`,
                             identifier: `${parameters.latitude},${parameters.longitude}`,
                             language: parameters.language,
                             countryCode: parameters.country,
